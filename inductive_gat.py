@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from dgl import DGLGraph
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
-from gat_bug import GAT
+from gat import GAT
 device = torch.device('cuda:0')
 def process_p2p():
     print('Loading G...')
