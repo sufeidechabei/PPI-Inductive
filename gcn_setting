@@ -5,4 +5,4 @@ layers: 1
 num_heads: 4
 batch_size: 2
 learning rate:0.005
-lr_decay: 5e-4
+weight_decay: 5e-4
