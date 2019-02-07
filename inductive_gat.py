@@ -8,7 +8,7 @@ from dgl import DGLGraph
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import StandardScaler
 from gat import GAT
-device = torch.device('cuda:0')
+device = torch.device('cuda:1')
 def process_p2p():
     print('Loading G...')
     with open('ppi/ppi-G.json') as jsonfile:
@@ -60,6 +60,8 @@ def evaluate(mask, model):
     with torch.no_grad():
         model.eval()
         model.g = g.subgraph(mask)
+        for layer in model.gat_layers:
+            layer.g = g.subgraph(mask)
         output = model(features[mask].float())
         loss_data = loss_fcn(output, labels[mask].float())
         predict = np.where(output.data.cpu().numpy() >= 0.5, 1, 0)
@@ -75,14 +77,14 @@ best_loss_curve = []
 val_early_loss = 10000
 val_early_score = -1
 model = GAT(g,
-            2,
             num_feats,
             256,
             n_classes,
             [4, 4, 6],
             F.elu,
-            0,
-            0,
+            0.0001,
+            0.0001,
+            0.2,
             True)
 
 loss_fcn = torch.nn.BCEWithLogitsLoss()
@@ -90,11 +92,14 @@ loss_fcn = torch.nn.BCEWithLogitsLoss()
 # use optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 model = model.to(device)
-for epoch in range(400):
+save_loss = []
+for epoch in range(200):
     model.train()
     loss_list = []
     for train_batch in batch_list:
         model.g = g.subgraph(train_batch)
+        for layer in model.gat_layers:
+            layer.g = g.subgraph(train_batch)
         input_feature = features[train_batch]
         logits = model(input_feature)
         loss = loss_fcn(logits, labels[train_batch].float())
@@ -103,6 +108,7 @@ for epoch in range(400):
         optimizer.step()
         loss_list.append(loss.item())
     loss_data = np.array(loss_list).mean()
+    save_loss.append(loss_data)
     print("Epoch {:05d} | Loss: {:.4f}".format(epoch + 1, loss_data))
     if epoch % 5 == 0:
         score, val_loss = evaluate(valid_mask, model)
@@ -119,4 +125,5 @@ for epoch in range(400):
                 break
 
 evaluate(test_mask, model)
-torch.save(best_model.state_dict(), './gat_best_model.ckpt')
+np.save('./gat.npy', np.array(save_loss))
+torch.save(model.state_dict(), './best_gat.ckpt')
