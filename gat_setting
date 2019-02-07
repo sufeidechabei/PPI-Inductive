@@ -1,5 +1,7 @@
 heads: [4, 4, 6]
+bias: False
 dropout: 0
 batchsize: 2
 hidden_size: 256
 learning rate: 0.005
+l2_decay: 0
