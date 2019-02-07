@@ -4,3 +4,4 @@ hidden_size: 32
 layers: 1
 num_heads: 4
 batch_size: 2
+learning rate:0.005
